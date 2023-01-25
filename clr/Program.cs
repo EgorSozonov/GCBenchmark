@@ -17,7 +17,6 @@ class Program {
             return;
         }
         run(height, "Regions and a good stack", runWithGoodStack);
-        Console.ReadKey();
     }
 
     public static void run(int height, string designator, Func<int, DateTime, int> coreFun) {

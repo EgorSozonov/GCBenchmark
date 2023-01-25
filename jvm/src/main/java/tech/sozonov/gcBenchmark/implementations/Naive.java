@@ -5,11 +5,9 @@ public class Naive {
 
 
 private final Tree theTree;
-private final int height;
 public int sum;
 
 public Naive(int height) {
-    this.height = height;
     theTree = createTree(height, new int[] {1, 2, -1, -1});
 }
 

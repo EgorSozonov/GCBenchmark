@@ -31,7 +31,11 @@ Run with
 
 Build with
 
+    dotnet build clr
+
 Run with
+
+    clr/_bin/gcBenchmark 27
 
 
 ## Java
@@ -51,8 +55,11 @@ where "27" is the height of the tree (at height = 27 it takes up about 7.4 GB of
 
 Build with
 
+    go build -o golang/_bin/gcBenchmark golang/gcBenchmark.go
+    
 Run with
 
+    golang/_bin/gcBenchmark 25
 
 
 
