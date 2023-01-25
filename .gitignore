@@ -1,4 +1,6 @@
+c/gcBenchmark
 clr/_bin/*
+clr/_temp/*
 clr/bin/*
 clr/obj/*
 jvm/.idea/*

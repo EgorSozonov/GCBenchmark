@@ -1,21 +1,31 @@
 # GCBenchmark
-Just a simple benchmark to compare characteristics of various GCs
+
+Just a simple benchmark to compare the characteristics of various GCs under GC pressure.
+
 It consists of binary tree implementations in 4 different languages of 4 different runtime platforms: 
 
 - C (native platform)
 
 - C# (the Common Language Runtime)
 
-- Java (the Java Virtual Machine)
+- Java (the Java Virtual Machi	ne)
 
 - Golang (the Google Go runtime)
 
+
+
+The "buildAll.sh" is included for convenience, it builds all 4 projects.
 
 ## C
 
 Build with
 
+    gcc -O3 c/GCBenchmark.c -o c/gcBenchmark -lm
+    
 Run with
+
+    c/gcBenchmark 27
+    
 
 ## C#
 
@@ -28,7 +38,7 @@ Run with
 
 Build with
 
-    mvn package
+    mvn package -f jvm/pom.xml
 
 Run with
 
@@ -42,4 +52,7 @@ where "27" is the height of the tree (at height = 27 it takes up about 7.4 GB of
 Build with
 
 Run with
+
+
+
 
