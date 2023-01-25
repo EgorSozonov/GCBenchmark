@@ -5,6 +5,7 @@ public class Naive {
 
 
 private final Tree theTree;
+public static final int payloadSize = 4;
 public int sum;
 
 public Naive(int height) {
@@ -24,7 +25,7 @@ private static Tree createTree(int height, int[] payload) {
         }
         if (!stack.isEmpty() && stack.size() < height) {
             topElem = stack.peek();
-            topElem.right = createLeftTree(height - stack.size(), payload, stack);
+            topElem.right = createLeftTree( height - stack.size(), payload, stack);
         }
     }
     return wholeTree;
@@ -68,12 +69,12 @@ protected void processLeftTree(Tree tree, Stack<Tree> stack) {
     Tree currElem = tree;
     if (currElem == null) return;
     stack.push(currElem);
-    for (int i = 0; i < currElem.payload.length; i++) {
+    for (int i = 0; i < payloadSize; i++) {
         sum += currElem.payload[i];
     }
     while (currElem.left != null) {
         currElem = currElem.left;
-        for (int i = 0; i < currElem.payload.length; i++) {
+        for (int i = 0; i < payloadSize; i++) {
             sum += currElem.payload[i];
         }
         stack.push(currElem);

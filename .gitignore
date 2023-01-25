@@ -7,3 +7,4 @@ jvm/.idea/*
 jvm/_bin/*
 jvm/target/*
 golang/_bin/*
+*.kate-swp
