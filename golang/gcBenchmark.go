@@ -13,8 +13,8 @@ const payloadSize = 4
 
 func main() {
     argsWithProg := os.Args
-    if (len(argsWithProg) != 3) {
-        fmt.Println("There must be exactly 2 arguments: the tree height (25 is a good starting value) then optionally 'regions'")
+    if (len(argsWithProg) < 2 || len(argsWithProg) > 3) {
+        fmt.Println("There must be 1 or 2 arguments: the tree height (25 is a good starting value) then optionally 'regions'")
         return
     }
 
@@ -24,14 +24,18 @@ func main() {
         return
     }
 
-    if argsWithProg[2] != "" && argsWithProg[2] != "regions" {
-        fmt.Println("The second argument, if present, must be 'regions', not " + argsWithProg[2])
-        return
+    runRegions := false
+    if len(argsWithProg) == 3 {
+        if argsWithProg[2] != "regions" {
+            fmt.Println("The second argument, if present, must be 'regions', not " + argsWithProg[2])
+            return
+        }
+        runRegions = true
     }
 
     designator := "Naive GC"
     coreFun := runNaive
-    if argsWithProg[2] == "regions" {
+    if runRegions {
         designator = "Regions"
     }
     run(height, designator, coreFun)
@@ -73,7 +77,7 @@ type Naive struct {
 func NewNaive(height int) *Naive {
     result := new(Naive)
     result.sum = 0
-    result.theTree = NewTree([]int{1, 2, -1, -1})
+    result.theTree = createTree(height, []int{1, 2, -1, -1})
     return result
 }
 
@@ -105,7 +109,6 @@ func createTree(height int, payload []int) *Tree {
 
 func createLeftTree(height int, payload []int, stack *Stack[Tree]) *Tree {
     if height == 0 { return nil }
-
     newArr := make([]int, payloadSize)
     copy(newArr[:], payload)
     wholeTree := NewTree(newArr)
