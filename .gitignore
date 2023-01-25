@@ -1,3 +1,7 @@
-*.agdai
-MAlonzo/**
+clr/_bin/*
+clr/bin/*
+clr/obj/*
 jvm/.idea/*
+jvm/_bin/*
+jvm/target/*
+golang/_bin/*
