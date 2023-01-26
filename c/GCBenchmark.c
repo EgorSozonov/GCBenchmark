@@ -122,11 +122,11 @@ int processTree(struct Tree* root) {
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        printf("This benchmark needs exactly 1 command-line argument: the tree height (25 is a good start)\n");
+        printf("This benchmark needs exactly 1 arguments: the tree height (25 is a good start)\n");
         return -1;
     }
     int height;
-    if (sscanf (argv[1], "%i", &height) != 1 || height <=) {
+    if (sscanf (argv[1], "%i", &height) != 1 || height <= 0) {
         printf("Error - argument must be a positive integer\n");
         return -1;
     }
@@ -148,8 +148,6 @@ int main(int argc, char** argv) {
     int sum = processTree(theTree);
 
     clock_t timeEnd = clock();
-    
-    //int sum = 0;
     printf("The sum is %d\n", sum);
     double diffTimeAlloc = (double)(timeAlloc - timeStart) / CLOCKS_PER_SEC;
     double diffTime = (double)(timeEnd - timeStart) / CLOCKS_PER_SEC;

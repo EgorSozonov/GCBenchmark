@@ -19,17 +19,17 @@ public class Naive {
     public static Tree createTree(int height, int[] payload) {
         if (height <= 0) return null;
 
-        var stack = new Stack<Tree>();
+        var stack = new ArrayStack(height);
         var wholeTree = createLeftTree(height, payload, stack);
-        while (stack.Count > 0) {
-            var bottomElement = stack.Peek();
-            if (bottomElement.right != null || stack.Count == height) {
-                stack.Pop();
-                while (stack.Count > 0 && stack.Peek().right != null) stack.Pop();
+        while (stack.isNotEmpty()) {
+            var topElement = stack.peek();
+            if (topElement.right != null || stack.length() == height) {
+                stack.pop();
+                while (stack.length() > 0 && stack.peek().right != null) stack.pop();
             }
-            if (stack.Count > 0 && stack.Count < height) {
-                bottomElement = stack.Peek();
-                bottomElement.right = createLeftTree(height - stack.Count, payload, stack);
+            if (stack.isNotEmpty() && stack.length() < height) {
+                topElement = stack.peek();
+                topElement.right = createLeftTree(height - stack.length(), payload, stack);
             }
         }
         return wholeTree;
@@ -37,21 +37,17 @@ public class Naive {
 
 
     // Populate the tree. Allocates lots of objects for the GC to waste time on.
-    public static Tree createLeftTree(int height, int[] payload, Stack<Tree> stack) {
+    public static Tree createLeftTree(int height, int[] payload, ArrayStack stack) {
         if (height == 0) return null;
 
-        var newArr = new int[4];
-        Array.Copy(payload, newArr, 4);
-        var wholeTree = new Tree { payload = newArr };
+        var wholeTree = new Tree { payload1 = payload[0], payload2 = payload[1], payload3 = payload[2], payload4 = payload[3] };
         var currTree = wholeTree;
-        stack.Push(wholeTree);
+        stack.push(wholeTree);
         for (int i = 1; i < height; ++i) {
-            newArr = new int[4];
-            Array.Copy(payload, newArr, 4);
-            var newTree = new Tree { payload = newArr };
+            var newTree = new Tree { payload1 = payload[0], payload2 = payload[1], payload3 = payload[2], payload4 = payload[3] };
             currTree.left = newTree;
             currTree = newTree;
-            stack.Push(currTree);
+            stack.push(currTree);
         }
         return wholeTree;
     }
@@ -62,10 +58,10 @@ public class Naive {
             Console.WriteLine("Oh blimey, why is the tree null!");
             return -1;
         } else {
-            var stack = new Stack<Tree>();
+            var stack = new ArrayStack(height);
             processLeftTree(theTree, stack);
-            while (stack.Count > 0) {
-                var bottomElem = stack.Pop().right;
+            while (stack.isNotEmpty()) {
+                var bottomElem = stack.pop().right;
                 if (bottomElem != null) processLeftTree(bottomElem, stack);
             }
         }
@@ -73,32 +69,65 @@ public class Naive {
     }
 
 
-    public void processLeftTree(Tree tree, Stack<Tree> stack) {
+    public void processLeftTree(Tree tree, ArrayStack stack) {
         Tree currElem = tree;
         if (currElem != null) {
-            stack.Push(currElem);
-            for (int i = 0; i < currElem.payload.Length; ++i) {
-                sum += currElem.payload[i];
-            }
+            stack.push(currElem);
+            sum += currElem.payload1 + currElem.payload2 + currElem.payload3 + currElem.payload4;
             while (currElem?.left != null) {
                 currElem = currElem.left;
                 if (currElem != null) {
-                    for (int i = 0; i < currElem.payload.Length; ++i) {
-                        sum += currElem.payload[i];
-                    }
-                    stack.Push(currElem);
+                    sum += currElem.payload1 + currElem.payload2 + currElem.payload3 + currElem.payload4;
+                    stack.push(currElem);
                 }
             }
         }
     }
-
-
-    public class Tree {
-        public Tree left = null;
-        public Tree right = null;
-        public int[] payload;
-    }
 }
 
+
+public class Tree {
+    public Tree left = null;
+    public Tree right = null;
+    public int payload1;
+    public int payload2;
+    public int payload3;
+    public int payload4;
+}
+
+
+public sealed class ArrayStack {
+    private Tree[] content;
+    private int ind;
+
+    public ArrayStack(int height) {
+        content = new Tree[height];
+        ind = 0;
+    }
+
+    public void push(Tree newTree) {
+        content[ind] = newTree;
+        ind++;
+    }
+
+    public bool isNotEmpty() {
+        return ind > 0;
+    }
+
+    public int length() {
+        return ind;
+    }
+
+    public Tree pop() {
+        if (ind == 0) return null;
+        ind--;
+        return content[ind];
+    }
+
+    public Tree peek() {
+        if (ind == 0) return null;
+        return content[ind - 1];
+    }
+}
 
 }

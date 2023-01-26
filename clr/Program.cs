@@ -8,15 +8,33 @@ using System.Threading.Tasks;
 
 class Program {
     static void Main(string[] args) {
-        if (args.Length != 1) {
-            Console.WriteLine("There must be exactly 1 argument: the tree height (25 is a good starting value)");
+
+        if (args.Length < 1 || args.Length > 2) {
+            Console.WriteLine("There must be 1 or 2 arguments: the tree height (25 is a good starting value) plus, optionally, the word \"regions\"");
             return;
         }
         if (!int.TryParse(args[0], out int height)) {
             Console.WriteLine("Error parsing the argument: it must be a positive integer");
             return;
         }
-        run(height, "Regions and a good stack", runWithGoodStack);
+        if (args.Length == 2 && args[1] != "regions") {
+            Console.WriteLine("Error: second argument, if present, must be \"regions\"!");
+            return;
+        }
+        Console.WriteLine("Running on the CLR!");
+        Console.WriteLine();
+        if (args.Length == 2) {
+            run(height, "Regions, 1st run", runWithGoodStack);
+            System.GC.Collect();
+            Console.WriteLine();
+            run(height, "Regions, 2nd run", runWithGoodStack);
+        } else {
+            run(height, "Naive GC 1st run", runNaive);
+            System.GC.Collect();
+            Console.WriteLine();
+            run(height, "Naive GC 2nd run", runNaive);
+        }
+
     }
 
     public static void run(int height, string designator, Func<int, DateTime, int> coreFun) {
@@ -28,7 +46,7 @@ class Program {
         var timeEnd = DateTime.Now;
 
         Console.WriteLine("Finished with result = " + result);
-        Console.WriteLine("Used time = " + (timeEnd - timeStart).TotalMilliseconds + " ms");
+        Console.WriteLine("Used time = " + (int)(timeEnd - timeStart).TotalMilliseconds + " ms");
     }
 
 
@@ -37,7 +55,7 @@ class Program {
 
         var memory = GC.GetTotalMemory(false);
         Console.WriteLine($"Used memory = {memory / 1024L / 1024L} MB");
-        Console.WriteLine($"Time for alloc = {(DateTime.Now - tStart).TotalMilliseconds} ms");
+        Console.WriteLine($"Time for alloc = {(int)(DateTime.Now - tStart).TotalMilliseconds} ms");
 
         return naive.processTree();
     }

@@ -21,6 +21,7 @@ public WithRegion(int height) {
     this.height = height;
     this.regions = new ArrayList<>();
     int numRegions = ((int)(Math.pow(2.0, (double)height) - 1.0))/eltsInRegion + 1;
+    System.out.println("Number of regions = " + numRegions + ", size of one region = " + sizeRegion + " 32-bit elements");
     for (int i = 0; i < numRegions; i++) {
         regions.add(new int[sizeRegion]);
     }
