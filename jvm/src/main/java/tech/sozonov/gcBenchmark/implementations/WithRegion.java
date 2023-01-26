@@ -1,26 +1,24 @@
 package tech.sozonov.gcBenchmark.implementations;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Stack;
 
-public class WithRegion {
+public final class WithRegion {
 
 
 public static final int eltsInRegion = 200000;
 public static final int sizeRegion = 6*eltsInRegion;
 public static final int sizePayload = 4;
 
-protected List<int[]> regions;
-protected int currRegion;
-protected int indFree;
-protected int sum;
-protected int height;
+private final List<int[]> regions;
+private int currRegion;
+private int indFree;
+private int sum;
+private final int height;
 
 public WithRegion(int height) {
     this.height = height;
     this.regions = new ArrayList<>();
-    int numRegions = ((int)(Math.pow(2.0, (double)height) - 1.0))/eltsInRegion + 1;
+    int numRegions = ((int)(Math.pow(2.0, height) - 1.0))/eltsInRegion + 1;
     System.out.println("Number of regions = " + numRegions + ", size of one region = " + sizeRegion + " 32-bit elements");
     for (int i = 0; i < numRegions; i++) {
         regions.add(new int[sizeRegion]);
@@ -38,32 +36,33 @@ protected static class Loc {
         ind = _ind;
     }
 }
-protected void createTree(int[] payload) {
+private void createTree(int[] payload) {
     if (this.height <= 0) return;
-    var stack = new Stack<Loc>();
+    var stack = new ArrayStack(this.height);
     final int wholeTree = createLeftTree(height, payload, stack);
-    while (!stack.isEmpty()) {
+    while (stack.isNotEmpty()) {
         var topElem = stack.peek();
-        if (topElem.arr[topElem.ind + 1] > -1 || stack.size() == height) {
+        if (topElem.arr[topElem.ind + 1] > -1 || stack.length() == height) {
             stack.pop();
-            while (!stack.isEmpty()) {
+            while (stack.isNotEmpty()) {
                 topElem = stack.peek();
                 if (topElem.arr[topElem.ind + 1] == -1) break;
                 stack.pop();
             }
         }
-        if (!stack.isEmpty()) {
+        if (stack.isNotEmpty()) {
             topElem = stack.peek();
-            topElem.arr[topElem.ind + 1] = createLeftTree(height - stack.size(), payload, stack);
+            topElem.arr[topElem.ind + 1] = createLeftTree(height - stack.length(), payload, stack);
         }
     }
 }
 
-protected int createLeftTree(int height, int[] payload, Stack<Loc> stack) {
+private int createLeftTree(int height, int[] payload, ArrayStack stack) {
     if (height == 0) return -1;
     final int wholeTree = allocateNode(payload);
     var currTree = toLoc(wholeTree);
     stack.push(currTree);
+
     for (int i = 1; i < height; i++) {
         final int newTree = allocateNode(payload);
         currTree.arr[currTree.ind] = newTree;
@@ -78,9 +77,9 @@ public int processTree() {
         System.out.println("Blimey, the tree is null or something!");
         return -1;
     }
-    var stack = new Stack<Loc>();
+    var stack = new ArrayStack(this.height);
     processLeftTree(toLoc(0), stack);
-    while (!stack.isEmpty()) {
+    while (stack.isNotEmpty()) {
         var topElem = stack.pop();
         int indRight = topElem.arr[topElem.ind + 1];
         if (indRight > -1) processLeftTree(toLoc(indRight), stack);
@@ -88,7 +87,7 @@ public int processTree() {
     return this.sum;
 }
 
-protected void processLeftTree(Loc root, Stack<Loc> stack) {
+private void processLeftTree(Loc root, ArrayStack stack) {
     stack.push(root);
     for (int i = (root.ind + 2); i <= (root.ind + sizePayload + 1); i++) {
         sum += root.arr[i];
@@ -104,13 +103,13 @@ protected void processLeftTree(Loc root, Stack<Loc> stack) {
     }
 }
 
-protected Loc toLoc(int ind) {
+private Loc toLoc(int ind) {
     final int numRegion = ind/sizeRegion;
     final int offset = ind % sizeRegion;
     return new Loc(regions.get(numRegion), offset);
 }
 
-protected int allocateNode(int[] payload) {
+private int allocateNode(int[] payload) {
     if (indFree == sizeRegion) {
         ++currRegion;
         indFree = 0;
@@ -130,20 +129,38 @@ protected int allocateNode(int[] payload) {
     return result;
 }
 
-public Loc getValue(int ind) throws Exception {
-    if (ind < 0) throw new Exception("Region index must be non-negative, not " + ind);
-    final int numRegion = ind/sizeRegion;
-    int offset = ind % sizeRegion;
-    if (numRegion >= regions.size()) throw new Exception("Nonexistent region " + numRegion);
-    return new Loc(regions.get(numRegion), offset);
-}
+private static final class ArrayStack {
+    private final Loc[] content;
+    private int ind;
 
-public void setValue(int ind, int newValue) {
-    if (ind < 0) return;
-    final int numRegion = ind / sizeRegion;
-    final int offset = ind % sizeRegion;
-    if (numRegion >= regions.size()) return;
-    regions.get(numRegion)[offset] = newValue;
+    public ArrayStack(int height) {
+        content = new Loc[height];
+        ind = 0;
+    }
+
+    public void push(Loc newTree) {
+        content[ind] = newTree;
+        ind++;
+    }
+
+    public Loc pop() {
+        if (ind == 0) return null;
+        ind--;
+        return content[ind];
+    }
+
+    public Loc peek() {
+        if (ind == 0) return null;
+        return content[ind - 1];
+    }
+
+    public boolean isNotEmpty() {
+        return ind > 0;
+    }
+
+    public int length() {
+        return ind;
+    }
 }
 
 

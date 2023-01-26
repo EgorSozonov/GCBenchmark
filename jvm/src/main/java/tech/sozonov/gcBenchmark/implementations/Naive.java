@@ -1,7 +1,7 @@
 package tech.sozonov.gcBenchmark.implementations;
 import java.util.Stack;
 
-public class Naive {
+public final class Naive {
 
 
 private final Tree theTree;
