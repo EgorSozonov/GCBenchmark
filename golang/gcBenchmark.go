@@ -10,8 +10,6 @@ import (
     "math"
 )
 
-const payloadSize = 4
-
 func main() {
     argsWithProg := os.Args
     if (len(argsWithProg) < 2 || len(argsWithProg) > 3) {
@@ -28,30 +26,27 @@ func main() {
     fmt.Println("Rob Pike give me wind, I'm sailing on the Golang ship!")
     fmt.Println()
 
-    runRegions := false
+    runingRegions := false
     if len(argsWithProg) == 3 {
         if argsWithProg[2] != "regions" {
             fmt.Println("The second argument, if present, must be 'regions', not " + argsWithProg[2])
             return
         }
-        runRegions = true
+        runingRegions = true
     }
 
     designator := "Naive GC"
     coreFun := runNaive
-    if runRegions {
+    if runingRegions {
         designator = "Regions"
+        coreFun = runRegions
     }
     run(height, designator + " 1st run", coreFun)
     fmt.Println()
     run(height, designator + " 2nd run", coreFun)
 
     fmt.Println()
-    var m runtime.MemStats
-    runtime.ReadMemStats(&m)
 
-    fmt.Println("Used memory = ", bToMb(m.HeapAlloc), " MB")
-    fmt.Println("GC cycles = ", m.NumGC, ", count of freed objects = ", m.Frees)
 
 }
 
@@ -75,6 +70,19 @@ func runNaive(height int, tStart time.Time) int {
 
     fmt.Println("Time for alloc = ", time.Now().Sub(tStart).Seconds(), " s")
     return naive.ProcessTree()
+}
+
+func runRegions(height int, tStart time.Time) int {
+    withRegion := NewWithRegion(height)
+
+    var m runtime.MemStats
+    runtime.ReadMemStats(&m)
+
+    fmt.Println("Used memory = ", bToMb(m.HeapAlloc), " MB")
+    fmt.Println("GC cycles = ", m.NumGC, ", count of freed objects = ", m.Frees)
+
+    fmt.Println("Time for alloc = ", time.Now().Sub(tStart).Seconds(), " s")
+    return withRegion.ProcessTree()
 }
 
 func bToMb(b uint64) uint64 {
@@ -189,7 +197,7 @@ const sizeRegion = 6*eltsInRegion
 const sizePayload = 4
 
 type WithRegion struct {
-    regions [][sizeRegion]int;
+    regions []*[sizeRegion]int;
     currRegion int;
     indFree int;
     sum int;
@@ -200,7 +208,8 @@ func NewWithRegion(height int) *WithRegion {
     result := new(WithRegion)
     result.height = height
     numRegions := int((math.Pow(2.0, float64(height)) - 1)/eltsInRegion + 1)
-    result.regions = make([][sizeRegion]int, numRegions)
+    result.regions = make([]*[sizeRegion]int, numRegions)
+    result.regions[0] = &[sizeRegion]int{}
     result.currRegion = 0
     result.indFree = 0
     result.createTree([]int {1, 2, -1, -1})
@@ -209,12 +218,16 @@ func NewWithRegion(height int) *WithRegion {
 
 func (this *WithRegion) createTree(payload []int) {
     if this.height <= 0 { return }
-    stack := new(Stack[Loc])
+    stack := NewLocStack(this.height)
     this.createLeftTree(this.height, payload, stack)
+
     for stack.IsNotEmpty() {
         topElem := stack.Peek()
+
         if topElem.arr[topElem.ind + 1] > -1 || stack.Len() == this.height {
+
             stack.Pop()
+
             for stack.IsNotEmpty() {
                 topElem = stack.Peek()
                 if (topElem.arr[topElem.ind + 1] == -1) { break }
@@ -228,16 +241,18 @@ func (this *WithRegion) createTree(payload []int) {
     }
 }
 
-func (this *WithRegion) createLeftTree(height int, payload []int, stack *Stack[Loc]) int {
+func (this *WithRegion) createLeftTree(height int, payload []int, stack *LocStack) int {
     if height == 0 { return -1 }
     wholeTree := this.allocateNode(payload)
     currTree := this.toLoc(wholeTree)
-    stack.Push(&currTree)
+
+    stack.Push(currTree)
     for i := 1; i < height; i++ {
         newTree := this.allocateNode(payload)
         currTree.arr[currTree.ind] = newTree
         currTree = this.toLoc(newTree)
-        stack.Push(&currTree)
+
+        stack.Push(currTree)
     }
     return wholeTree
 }
@@ -247,7 +262,8 @@ func (this *WithRegion) ProcessTree() int {
         fmt.Println("Blimey, the tree is null or something!")
         return -1
     }
-    stack := new(Stack[Loc])
+
+    stack := NewLocStack(this.height)
     this.processLeftTree(this.toLoc(0), stack)
     for stack.IsNotEmpty() {
         topElem := stack.Pop()
@@ -259,18 +275,19 @@ func (this *WithRegion) ProcessTree() int {
     return this.sum
 }
 
-func (this *WithRegion) processLeftTree(root Loc, stack *Stack[Loc]) {
-    stack.Push(&root)
-    for i := root.ind + 2; i <= (root.ind + sizePayload + 1); i++ {
+func (this *WithRegion) processLeftTree(root Loc, stack *LocStack) {
+    stack.Push(root)
+    for i := root.ind + 2; i < (root.ind + sizePayload + 2); i++ {
         this.sum += root.arr[i]
     }
     currLeft := root.arr[root.ind]
     for currLeft > -1 {
+
         currNode := this.toLoc(currLeft)
-        for i := currNode.ind + 2; i <= (currNode.ind + sizePayload + 1); i++ {
+        for i := currNode.ind + 2; i < (currNode.ind + sizePayload + 2); i++ {
             this.sum += currNode.arr[i]
         }
-        stack.Push(&currNode)
+        stack.Push(currNode)
         currLeft = currNode.arr[currNode.ind]
     }
 }
@@ -279,14 +296,14 @@ func (this *WithRegion) allocateNode(payload []int) int {
     if this.indFree == sizeRegion {
         this.currRegion++
         this.indFree = 0
-        this.regions[this.currRegion] = [sizeRegion]int{}
+        this.regions[this.currRegion] = &[sizeRegion]int{}
     }
     region := this.regions[this.currRegion]
     result := this.currRegion*sizeRegion + this.indFree
     region[this.indFree] = -1
     region[this.indFree + 1] = -1
     this.indFree += 2
-    for pl := range payload {
+    for _, pl := range payload {
         region[this.indFree] = pl
         this.indFree++
     }
@@ -300,7 +317,7 @@ func (this *WithRegion) toLoc(ind int) Loc {
 }
 
 type Loc struct {
-    arr [sizeRegion]int;
+    arr *[sizeRegion]int;
     ind int;
 }
 
@@ -323,7 +340,7 @@ func (s *Stack[T]) Pop() *T {
     if s.IsNotEmpty() {
         index := len(*s) - 1
         element := (*s)[index]
-        *s = (*s)[:index]
+        *s = (*s)[0:index]
         return element
     } else {
         return nil
@@ -344,5 +361,63 @@ func (s *Stack[T]) Peek() *T {
     }
 }
 
+func (s *Stack[T]) Get(i int) *T {
+    return (*s)[i]
+}
+
 // ------------------------------ /Stack ------------------------------
 
+// ------------------------------ LocStack ------------------------------
+
+type LocStack struct {
+    content []Loc;
+    ind int;
+}
+
+func (s *LocStack) IsNotEmpty() bool {
+    return s.ind > 0
+}
+
+func (s *LocStack) Push(item Loc) {
+    s.content[s.ind] = item
+    s.ind++
+}
+
+func (s *LocStack) Pop() Loc {
+    if s.ind > 0 {
+        s.ind--
+        return s.content[s.ind]
+    } else {
+        return s.content[0]
+    }
+}
+
+func (s *LocStack) Len() int {
+    return s.ind
+}
+
+func (s *LocStack) Peek() Loc {
+    if s.ind > 0 {
+        return s.content[s.ind - 1]
+    } else {
+        return s.content[0]
+    }
+}
+
+
+func (s *LocStack) Get(i int) Loc {
+    if s.IsNotEmpty() {
+        return s.content[i]
+    } else {
+        return s.content[0]
+    }
+}
+
+func NewLocStack(l int) *LocStack {
+    result := new(LocStack)
+    result.content = make([]Loc, l)
+    result.ind = 0
+    return result
+}
+
+// ------------------------------ /LocStack ------------------------------
