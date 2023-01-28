@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-public class Naive {
+public sealed class Naive {
     public int height;
     public int sum = 0;
     public Tree theTree = null;
@@ -86,7 +86,7 @@ public class Naive {
 }
 
 
-public class Tree {
+public sealed class Tree {
     public Tree left = null;
     public Tree right = null;
     public int payload1;
